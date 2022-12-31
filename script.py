@@ -110,7 +110,3 @@ if __name__ == '__main__':
             elapsed = end - start
 
             print('\r' + str(i+1), ' / ', '8214', f'\tChunk time: {elapsed:.6f} seconds', end='')   
-
-     
-
-

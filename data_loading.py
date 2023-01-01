@@ -9,6 +9,8 @@ from multiprocessing import Pool
 from datetime import datetime
 from pymongo import MongoClient
 
+load_dotenv()
+URI = os.getenv('MONGO_CONNECTION_STRING')
 # %%
 def process_data(df):
     #replace na values with empty string
@@ -65,24 +67,16 @@ def process_data(df):
     for index, row in df__.iterrows():
         documents.append(row.to_dict())
 
-
-
     # Connect to the database
-    client = MongoClient()
-    collection = client['expedia']['tickets']
-
-    #Insert the data into the database
-    collection.insert_many(documents)
-    client.close()
+    with MongoClient(URI) as client:
+        collection = client['expedia']['tickets']
+        #Insert the data into the database
+        collection.insert_many(documents)
 
     return documents
 
 # %%
 if __name__ == '__main__':
-    # Read .env file
-    load_dotenv()
-
-
     # Read the csv file in chunks
     chunksize = 10**4
 

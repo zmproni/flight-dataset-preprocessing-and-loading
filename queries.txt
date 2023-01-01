@@ -1,0 +1,71 @@
+1. 
+
+[
+  {
+    $match: {
+      flightDate: {
+        $gte: new Date("2022-04-20"),
+        $lte: new Date("2022-04-22"),
+      },
+    },
+  },
+  {
+    /**
+     * _id: The id of the group.
+     * fieldN: The first field name.
+     */
+    $group: {
+      _id: "$destinationAirport",
+      total: { $count: {} },
+    },
+  },
+  {
+    /**
+     * Provide any number of field/order pairs.
+     */
+    $sort: {
+      total: -1,
+    },
+  },
+  {
+    /**
+     * Provide the number of documents to limit.
+     */
+    $limit: 1,
+  },
+]
+
+2.
+[
+  {
+    $match: {
+      startingAirport: "LAX",
+      destinationAirport: {
+        $in: ["JFK", "LGA"],
+      },
+    },
+  },
+  {
+    $sort: {
+      baseFare: 1,
+    },
+  },
+  {
+    $limit: 10,
+  },
+  {
+    $project: {
+      _id: 0,
+      airline: {
+        $arrayElemAt: ["$segments.airlineName", 0],
+      },
+      airlineCode: {
+        $arrayElemAt: ["$segments.airlineCode", 0],
+      },
+      flightId: "$legId",
+      destinationAirport: "$destinationAirport",
+      baseFare: "$baseFare",
+      flightDate: "$flightDate",
+    },
+  },
+]

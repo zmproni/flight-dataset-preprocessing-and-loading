@@ -9,6 +9,8 @@ from multiprocessing import Pool
 from datetime import datetime
 from pymongo import MongoClient
 
+load_dotenv()
+URI = os.getenv('MONGO_CONNECTION_STRING')
 # %%
 
 def replace_na(df):

@@ -8,19 +8,18 @@ from dotenv import load_dotenv
 from multiprocessing import Pool
 from datetime import datetime
 from pymongo import MongoClient
+from math import ceil
 
 load_dotenv()
 URI = os.getenv('MONGO_CONNECTION_STRING')
 # %%
-
-def replace_na(df):
+def process_data(df):
+    #replace na values with empty string
     df.totalTravelDistance = df.totalTravelDistance.fillna('0')
     df.segmentsEquipmentDescription = df.segmentsEquipmentDescription.fillna('')
-    return df
 
-def convert_datatype(df):
-    df.searchDate = pd.to_datetime(df.searchDate, format='%Y-%m-%d')
-    df.flightDate  = pd.to_datetime(df.flightDate, format='%Y-%m-%d')
+    df.searchDate = pd.to_datetime(df.searchDate, format=f'%Y-%m-%d')
+    df.flightDate  = pd.to_datetime(df.flightDate, format=f'%Y-%m-%d')
     df.elapsedDays = df.elapsedDays.astype(int)
     df.isBasicEconomy = df.isBasicEconomy.astype(bool)
     df.isBasicEconomy = df.isBasicEconomy.astype(bool)
@@ -30,41 +29,34 @@ def convert_datatype(df):
     df.totalFare = df.totalFare.astype(float)
     df.seatsRemaining = df.seatsRemaining.astype(int)
     df.totalTravelDistance = df.totalTravelDistance.astype(int)
-    return df
-
-def split_segments(row):
-    segments = []
-    for i in range(len(row[0])):
-        if row[i] is not None:
-            segment = {
-                'departureTimeEpochSeconds': int(row[0][i]),
-                'departureTimeRaw': datetime.fromisoformat(row[1][i]),
-                'arrivalTimeEpochSeconds': int(row[2][i]),
-                'arrivalTimeRaw': datetime.fromisoformat(row[3][i]),
-                'arrivalAirportCode': row[4][i],
-                'departureAirportCode': row[5][i],
-                'airlineName': row[6][i],
-                'airlineCode': row[7][i],
-                'equipmentDescription': row[8][i],
-                'durationInSeconds': int(row[9][i]),
-                'distance': row[10][i],
-                'cabinCode': row[11][i],
-            }
-            segments.append(segment)
-    return segments   
-
-def process_data(df):
-    #replace na values with empty string
-    df = replace_na(df)
-
-    #convert datatypes
-    df = convert_datatype(df)
 
     # split segements by || separator
     df_ = df.iloc[:, 15:].apply(lambda x: x.str.split('\|\|'))
 
-    # apply function to dataframe
-    segment = df_.apply(split_segments, axis=1)
+    # function that takes dataframe row and converts the segment features into a list of segment objects 
+    def convert_to_segments(row):
+        segments = []
+        for i in range(len(row[0])):
+            if row[i] is not None:
+                segment = {
+                    'departureTimeEpochSeconds': int(row[0][i]),
+                    'departureTimeRaw': datetime.fromisoformat(row[1][i]),
+                    'arrivalTimeEpochSeconds': int(row[2][i]),
+                    'arrivalTimeRaw': datetime.fromisoformat(row[3][i]),
+                    'arrivalAirportCode': row[4][i],
+                    'departureAirportCode': row[5][i],
+                    'airlineName': row[6][i],
+                    'airlineCode': row[7][i],
+                    'equipmentDescription': row[8][i],
+                    'durationInSeconds': int(row[9][i]),
+                    'distance': row[10][i],
+                    'cabinCode': row[11][i],
+                }
+                segments.append(segment)
+        return segments
+
+            # apply function to dataframe
+    segment = df_.apply(convert_to_segments, axis=1)
 
     # drop columns from 15th to the end 
     df__ = df.iloc[:, :15]
@@ -78,24 +70,26 @@ def process_data(df):
         documents.append(row.to_dict())
 
     # Connect to the database
-    # Get env variables
-    connection_string = os.getenv('MONGO_CONNECTION_STRING')
-
-    with MongoClient(connection_string) as client:
+    with MongoClient(URI) as client:
         collection = client['expedia']['tickets']
         #Insert the data into the database
         collection.insert_many(documents)
 
     return documents
 
+# Function to count rows in a file
+def count_rows(input):
+    with open(input) as f:
+        for i, l in enumerate(f):
+            pass
+    return i
+
 # %%
-ENTRIES = 82.1 * 10**6
-CHUNK_SIZE = 10**4
-FILE = './agoda_tickets.csv'
 
 if __name__ == '__main__':
-    # Read .env file
-    load_dotenv()
+    FILE = './agoda_tickets.csv'
+    CHUNK_SIZE = 10**4
+    ENTRIES = count_rows(FILE)
 
     # Count number of processes
     num_processes = psutil.cpu_count(logical=False)
@@ -110,6 +104,7 @@ if __name__ == '__main__':
             chunk_split = np.array_split(chunk, num_processes)
             data = []
             # Process the data in parallel
+
             try:
                 with Pool(num_processes) as pool:
                     data = pool.map(process_data, chunk_split)
@@ -120,4 +115,5 @@ if __name__ == '__main__':
             end = time.perf_counter()
             elapsed = end - start
 
-            print('\r' + f"{str(i+1)} / {ENTRIES / CHUNK_SIZE} \tChunk time: {elapsed:.6f} seconds", end='')   
+            print('\r' + f"{str(i+1)} / {ceil(ENTRIES / CHUNK_SIZE)} \tChunk time: {elapsed:.6f} seconds", end='')   
+# %%

@@ -1,5 +1,6 @@
 import pandas as pd 
 import os
+import csv
 from math import ceil 
 
 # Function to count rows in a file
@@ -31,16 +32,17 @@ if __name__ == '__main__':
 
     # Use pandas to read the file in chunks
     row = 0
-    with pd.read_csv(FILE, chunksize=CHUNK_SIZE) as reader:
+    
+    df = pd.read_csv(FILE, nrows=0)
+    df.to_csv(TARGET_FILE, mode='w', header=True, index=False,  encoding='utf-8')
+
+    with pd.read_csv(FILE, chunksize=CHUNK_SIZE, parse_dates=False) as reader:
         for chunk in reader:
             if row + CHUNK_SIZE > rows_needed:
                 break
 
-            while row <= rows_needed:
-                if row + CHUNK_SIZE > rows_needed:
-                    chunk = chunk.iloc[:rows_needed - row]
-            
-                chunk.to_csv(TARGET_FILE, mode='a', header=False, index=False)
+            while row <= rows_needed:            
+                chunk.to_csv(TARGET_FILE, mode='a', header=False, index=False,  encoding='utf-8', quoting=csv.QUOTE_NONNUMERIC)
                 row += CHUNK_SIZE
 
     new_file_size = os.path.getsize(TARGET_FILE)

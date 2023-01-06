@@ -91,6 +91,7 @@ def process_data(df):
 # %%
 ENTRIES = 82.1 * 10**6
 CHUNK_SIZE = 10**4
+FILE = './agoda_tickets.csv'
 
 if __name__ == '__main__':
     # Read .env file
@@ -100,7 +101,7 @@ if __name__ == '__main__':
     num_processes = psutil.cpu_count(logical=False)
     print('Number of processes: ', num_processes)
 
-    with pd.read_csv('./itineraries.csv', chunksize=CHUNK_SIZE) as reader:
+    with pd.read_csv(FILE, chunksize=CHUNK_SIZE) as reader:
         for i, chunk in enumerate(reader):
             # Track runtime of code 
             start = time.perf_counter()

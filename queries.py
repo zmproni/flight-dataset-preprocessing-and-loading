@@ -11,7 +11,9 @@ client = MongoClient(URI)
 
 # Query 1
 # What is the most popular airport during holiday season
-# TODO: Change the date range to the holiday season
+
+# Aggregation pipeline
+
 result_1 = client['expedia']['sample'].aggregate([
     {
         '$match': {
@@ -75,9 +77,72 @@ result_2 = client['expedia']['sample'].aggregate([
     }
 ])
 
+# find() method
+client['expedia']['sample'].find({
+  '$startingAirport': "LAX",
+  '$destinationAirport': { '$in': ["JFK", "LGA"] }
+}, {
+  '_id': 0,
+  'airline': { '$arrayElemAt': ["$segments.airlineName", 0] },
+  'airlineCode': { '$arrayElemAt': ["$segments.airlineCode", 0] },
+  'flightId': "$legId",
+  'destinationAirport': "$destinationAirport",
+  'baseFare': "$baseFare",
+  'flightDate': "$flightDate"
+}).sort({ 'baseFare': 1 }).limit(10)
+
 # TODO: Make some of the queries do something other than just aggregation,
 # For example 
 
 # Query 3
+result_3 = client['expedia']['sample'].aggregate([
+    {
+        '$group': {
+            '_id': {
+                'departureTime': {
+                    '$arrayElemAt': [
+                        '$segments.departureTimeRaw', 0
+                    ]
+                }, 
+                'arrivalTime': {
+                    '$arrayElemAt': [
+                        '$segments.arrivalTimeRaw', -1
+                    ]
+                }, 
+                'startingAirport': "$startingAirport",
+                'arrivalAirport': "$destinationAirport", 
+                'airline': {
+                    '$arrayElemAt': [
+                        '$segments.airlineName', 0
+                    ]
+                }, 
+                'conncetions': {
+                    '$size': '$segments'
+                }
+            }
+        }
+    }, {
+        '$project': {
+            '_id': 0, 
+            'airline': '$_id.airline', 
+            'departureTime': '$_id.departureTime', 
+            'arrivalTime': '$_id.arrivalTime', 
+            'startingAirport': '$_id.startingAirport', 
+            'arrivalAirport': '$_id.arrivalAirport', 
+            'conncetions': {
+                '$subtract': [
+                    '$_id.conncetions', 1
+                ]
+            }
+        }
+    }, {
+        '$out': 'flights'
+    }
+])
 
 # Query 4
+# Update the equipmentDescription of a flight
+result_4 = client['expedia']['sample'].update(
+    {'legId': 'c38a6e4b807d15541e5866676febcbec'},
+    {'$set': {  "equipmentDescription": "Airbus A320-200"}},
+)

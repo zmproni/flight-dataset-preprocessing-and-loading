@@ -1,5 +1,16 @@
+/**  Log runtime function */
+function logRuntime(fun) {
+    let start = performance.now()
+    
+    fun()
+    
+    let end = performance.now()
+    let time = end - start
+    print(`Runtime: ${time} ms`)
+}
+
 // Q1 Index
-db.tickets.createIndex(
+const createLegIdIndex =  () =>  db.tickets.createIndex(
     {"legId": 1,},
     {
         unique: false,
@@ -9,13 +20,16 @@ db.tickets.createIndex(
 )
 
 // Q2 Index
-db.tickets.createIndex(
-    {"flightDate": 1,},
+const createFlightDateIndex =  () =>  db.tickets.createIndex(
+    {
+        "startingAirport": 1,
+        "destinationAirport": 1,
+    },
     {unique: false}
 )
 
 // Q3 Index
-db.tickets.createIndex({
+const createCompoundIndex =  () =>  db.tickets.createIndex({
     'segments.airlineName': 1,
     'segments.departureTimeRaw': 1,
     'segments.arrivalTimeRaw': 1,
@@ -25,7 +39,14 @@ db.tickets.createIndex({
 
 
 // Q4 Index
-db.tickets.createIndex(
+const partialFilterIndex = () => db.tickets.createIndex(
     { 'segments.airlineName': 1 },
     { partialFilterExpression: { 'segments.airlineName': 'American Airlines' } }
 )
+
+
+// Run queries with time logging
+logRuntime(createLegIdIndex)
+logRuntime(createFlightDateIndex)
+logRuntime(createCompoundIndex)
+logRuntime(partialFilterIndex)

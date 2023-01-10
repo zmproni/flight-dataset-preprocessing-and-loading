@@ -1,6 +1,4 @@
-// 4. Update all documents in the collection with legId = c38a6e4b807d15541e5866676febcbec
-// Set the equipmentDescription field to "Airbus A320-200"
-db.tickets.explain('executionStats').updateMany(
+db.tickets.explain('executionStats').update(
   { "segments.airlineName": "American Airlines" },
   {
     $set: {
@@ -19,4 +17,9 @@ db.tickets.explain('executionStats').updateMany(
         }
       }
     },
-  })
+  },
+  { 
+    upsert: false, 
+    multi: true,
+  }
+)

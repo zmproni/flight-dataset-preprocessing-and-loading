@@ -35,16 +35,19 @@ if __name__ == '__main__':
     
     df = pd.read_csv(FILE, nrows=0)
     df.to_csv(TARGET_FILE, mode='w', header=True, index=False,  encoding='utf-8')
-
+    will_break = False
+    
     with pd.read_csv(FILE, chunksize=CHUNK_SIZE, parse_dates=False) as reader:
         for chunk in reader:
             if row + CHUNK_SIZE > rows_needed:
-                break
+                will_break = True
 
             while row <= rows_needed:            
                 chunk.to_csv(TARGET_FILE, mode='a', header=False, index=False,  encoding='utf-8', quoting=csv.QUOTE_NONNUMERIC)
                 row += CHUNK_SIZE
 
+            if will_break:
+                break
     new_file_size = os.path.getsize(TARGET_FILE)
 
     print(f'File size: {new_file_size/10**9} GB')
